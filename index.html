@@ -1,1 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro de Custos PV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ferramenta de cadastro — cabeçalho + abas; em cada aba, formulário à esquerda e tabela de vigências à direita (empilha no celular) */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --sunk:#e9eeec; --line:#d3dbd8; --fg:#17201d; --muted:#5b6964;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --accent-soft:#d8ece7;
+  --ok:#1d7a45; --warn:#9a6200; --warn-soft:#fbefd6; --bad:#b3261e; --bad-soft:#f8dedb;
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Public Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#18211e; --sunk:#202b28; --line:#2f3c38; --fg:#e4ebe8; --muted:#97a6a1;
+  --accent:#4fbfa8; --accent-ink:#06201b; --accent-soft:#163a33;
+  --ok:#5fcf8c; --warn:#e7b04a; --warn-soft:#3a2d12; --bad:#f08a80; --bad-soft:#3d1c19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18211e; --sunk:#202b28; --line:#2f3c38; --fg:#e4ebe8; --muted:#97a6a1;
+  --accent:#4fbfa8; --accent-ink:#06201b; --accent-soft:#163a33;
+  --ok:#5fcf8c; --warn:#e7b04a; --warn-soft:#3a2d12; --bad:#f08a80; --bad-soft:#3d1c19; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{font-size:14px}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.6rem;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:68ch}
+.status{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)} .dot.off{background:var(--bad)}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{font:600 .9rem var(--f-body);background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{font:500 .72rem var(--f-mono);background:var(--sunk);border-radius:10px;padding:1px 7px;margin-left:6px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font:600 1rem var(--f-display);margin:0}
+.panel h3{font:600 .82rem var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 0 0}
+form{display:flex;flex-direction:column;gap:10px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fields .full{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)}
+label small{font-weight:400}
+input,select,textarea{font:400 .92rem var(--f-body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+textarea{font:400 .8rem/1.5 var(--f-mono);min-height:280px;resize:vertical;white-space:pre;overflow:auto}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button.b{font:600 .85rem var(--f-body);border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.b.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.b.danger{color:var(--bad);border-color:var(--bad)}
+button.b:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-size:.78rem;color:var(--muted);margin:0}
+.msg{font-size:.82rem;padding:8px 10px;border-radius:6px;background:var(--accent-soft)}
+.msg.err{background:var(--bad-soft);color:var(--bad)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.toolbar input[type=search]{max-width:240px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th{font:600 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;background:var(--sunk);padding:8px 10px;white-space:nowrap}
+td{padding:8px 10px;border-top:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--sunk)}
+tbody tr.sel{background:var(--accent-soft)}
+.chip{display:inline-block;font:600 .7rem var(--f-body);border-radius:10px;padding:2px 8px;letter-spacing:.02em}
+.chip.ok{background:var(--accent-soft);color:var(--accent)}
+.chip.end{background:var(--sunk);color:var(--muted)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.strip{display:grid;grid-template-columns:repeat(12,9px);gap:2px}
+.strip i{height:12px;border-radius:2px;background:var(--sunk)}
+.strip i.a{background:var(--accent)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.kpi b{display:block;font:500 1.15rem var(--f-mono);font-variant-numeric:tabular-nums}
+.kpi span{font-size:.75rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.row label{min-width:140px}
+.rule{border:0;border-top:1px solid var(--line);margin:4px 0}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-radius:6px;background:var(--bad-soft);color:var(--bad);font-size:.82rem}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Acesso com senha */
+.gate{min-height:80vh;display:grid;place-items:center;padding-inline:16px;padding-block:32px}
+.gate .card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px}
+.gate h1{font-size:1.3rem}
+.gate .lock{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center}
+.gate .lock svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2}
+/* Identificação da empresa */
+.ident{display:flex;flex-direction:column;gap:12px}
+.ident-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between}
+.empresa{font:700 1.7rem/1.15 var(--f-display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.empresa.vazio{color:var(--muted)}
+.local{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;color:var(--muted);font-size:.9rem}
+.tipo{font:700 .7rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;padding:3px 9px;border-radius:4px;background:var(--fg);color:var(--bg)}
+.tipo.filial{background:var(--accent);color:var(--accent-ink)}
+.ident-fields{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.6fr) minmax(0,.7fr) auto;gap:10px;align-items:end}
+@media (max-width:800px){.ident-fields{grid-template-columns:1fr 1fr}.ident-fields .wide{grid-column:1/-1}}
+.unitbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.unitbar select{width:auto;max-width:100%}
+.appname{font:600 .78rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+</style>
 
+</head>
+<body>
+<div class="gate" id="gate">
+  <form class="card" id="gForm" autocomplete="off">
+    <div class="lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <div>
+      <div class="appname">Cadastro de Custos PV</div>
+      <h1 id="gTitle">Acesso restrito</h1>
+      <p class="hint" id="gText" style="margin-top:6px">Verificando o acesso…</p>
+    </div>
+    <label id="gL0" hidden>Seu nome <small>(fica no histórico)</small><input id="gNome" autocomplete="name"></label>
+    <label id="gL1" hidden>Senha<input type="password" id="gPass" autocomplete="current-password"></label>
+    <label id="gL2" hidden>Confirme a senha<input type="password" id="gPass2" autocomplete="new-password"></label>
+    <button class="b pri" type="submit" id="gGo" hidden>Entrar</button>
+    <div id="gMsg" class="msg err" hidden></div>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <section class="panel ident" aria-label="Identificação da empresa">
+    <div class="ident-top">
+      <div>
+        <div class="appname">Cadastro de Custos PV</div>
+        <p class="empresa" id="idNome">Empresa não identificada</p>
+        <div class="local"><span class="tipo" id="idTipo">Matriz</span><span id="idLocal">Cidade / UF não informados</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <div class="status"><span class="dot" id="dbDot"></span><span id="dbStatus">Conectando à base…</span></div>
+        <div class="unitbar">
+          <label style="flex-direction:row;align-items:center;gap:6px">Unidade <select id="uSel"></select></label>
+          <button class="b" type="button" id="uNew">Nova unidade</button>
+          <button class="b" type="button" id="reload">Recarregar</button>
+          <button class="b" type="button" id="pwBtn">Alterar senha</button>
+          <button class="b" type="button" id="logout">Sair</button>
+        </div>
+      </div>
+    </div>
+    <form id="uForm" class="ident-fields" autocomplete="off">
+      <label class="wide">Nome da empresa<input id="u_empresa" required placeholder="Razão social ou nome fantasia"></label>
+      <label>Matriz ou filial<select id="u_tipo"><option>Matriz</option><option>Filial</option></select></label>
+      <label>Cidade<input id="u_cidade" required></label>
+      <label>UF<select id="u_uf" required><option value="">—</option></select></label>
+      <button class="b pri" type="submit" id="uSave">Salvar identificação</button>
+    </form>
+    <div id="pwBox" class="row" hidden>
+      <label>Senha atual<input type="password" id="pwAtual" autocomplete="current-password"></label>
+      <label>Nova senha<input type="password" id="pwNew" autocomplete="new-password"></label>
+      <label>Confirme<input type="password" id="pwNew2" autocomplete="new-password"></label>
+      <button class="b pri" type="button" id="pwGo">Salvar nova senha</button>
+    </div>
+    <div id="uMsg" class="msg" hidden></div>
+  </section>
+
+  <nav role="tablist" id="tabs">
+    <button role="tab" data-tab="func" aria-selected="true">Funcionários<span class="count" id="cFunc">0</span></button>
+    <button role="tab" data-tab="custo" aria-selected="false">Custos<span class="count" id="cCusto">0</span></button>
+    <button role="tab" data-tab="base" aria-selected="false">Base mensal</button>
+    <button role="tab" data-tab="pq" aria-selected="false">Exportar e Power Query</button>
+  </nav>
+
+  <!-- FUNCIONÁRIOS -->
+  <section data-panel="func" class="grid">
+    <div class="panel">
+      <h2 id="fTitle">Novo funcionário</h2>
+      <form id="fForm" autocomplete="off">
+        <div class="fields">
+          <label class="full">Colaborador<input id="f_colaborador" required></label>
+          <label class="full">Função
+            <input id="f_funcao" list="funcoes">
+            <datalist id="funcoes"><option>Auxiliar</option><option>Técnico</option><option>Coordenador</option><option>Analista</option></datalist>
+          </label>
+          <label class="full">Salário fixo (R$)<input id="f_salario" type="number" step="0.01" min="0"></label>
+          <label>Data início<input id="f_inicio" type="date" required></label>
+          <label>Data fim <small>(vazio = ativo)</small><input id="f_fim" type="date"></label>
+        </div>
+        <p class="hint">A data de início só muda se o funcionário ingressou durante o ano. Preencha a data fim em desligamentos.</p>
+        <div class="btns">
+          <button class="b pri" type="submit" id="fSave">Salvar</button>
+          <button class="b" type="button" id="fNew">Limpar</button>
+          <button class="b" type="button" id="fVig" hidden>Nova vigência…</button>
+          <button class="b danger" type="button" id="fDel" hidden>Excluir</button>
+        </div>
+        <div id="fVigBox" class="panel" hidden style="padding:10px;background:var(--bg)">
+          <p class="hint">Encerra o registro atual no fim do mês anterior e cria um novo a partir do mês escolhido, com os valores do formulário (ex.: reajuste salarial ou mudança de função).</p>
+          <div class="row"><label>Vale a partir de<input type="month" id="fVigMes"></label>
+          <button class="b pri" type="button" id="fVigGo">Criar vigência</button></div>
+        </div>
+        <div id="fConfirm" class="confirm" hidden>Excluir este registro? <button class="b danger" type="button" id="fDelYes">Excluir</button><button class="b" type="button" id="fDelNo">Cancelar</button></div>
+        <div id="fMsg" class="msg" hidden></div>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="toolbar">
+        <h2>Vigências cadastradas</h2>
+        <div class="row" style="gap:8px">
+          <input type="search" id="fSearch" placeholder="Buscar colaborador ou função">
+          <select id="fFilter" style="width:auto"><option value="all">Todos</option><option value="ativo">Ativos hoje</option><option value="enc">Encerrados</option><option value="inc">Incompletos</option></select>
+        </div>
+      </div>
+      <div class="tbl"><table>
+        <thead><tr><th>Colaborador</th><th>Função</th><th class="n">Salário fixo</th><th>Início</th><th>Fim</th><th>Meses ativos <span id="fYear"></span></th><th>Situação</th></tr></thead>
+        <tbody id="fBody"></tbody>
+      </table></div>
+      <p class="hint">Clique numa linha para editar.</p>
+    </div>
+  </section>
+
+  <!-- CUSTOS -->
+  <section data-panel="custo" class="grid" hidden>
+    <div class="panel">
+      <h2 id="cTitle">Nova vigência de custos</h2>
+      <form id="cForm" autocomplete="off">
+        <div class="fields" id="cFields"></div>
+        <div class="btns">
+          <button class="b pri" type="submit">Salvar</button>
+          <button class="b" type="button" id="cNew">Limpar</button>
+          <button class="b" type="button" id="cVig" hidden>Nova vigência…</button>
+          <button class="b danger" type="button" id="cDel" hidden>Excluir</button>
+        </div>
+        <div id="cVigBox" class="panel" hidden style="padding:10px;background:var(--bg)">
+          <p class="hint">Encerra a vigência atual no fim do mês anterior e cria outra a partir do mês escolhido com os valores do formulário.</p>
+          <div class="row"><label>Vale a partir de<input type="month" id="cVigMes"></label>
+          <button class="b pri" type="button" id="cVigGo">Criar vigência</button></div>
+        </div>
+        <div id="cConfirm" class="confirm" hidden>Excluir esta vigência? <button class="b danger" type="button" id="cDelYes">Excluir</button><button class="b" type="button" id="cDelNo">Cancelar</button></div>
+        <div id="cMsg" class="msg" hidden></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Vigências de custos</h2>
+      <div class="tbl"><table>
+        <thead><tr id="cHead"></tr></thead>
+        <tbody id="cBody"></tbody>
+      </table></div>
+      <p class="hint">Só pode haver uma vigência de custos por mês. Sobreposições aparecem marcadas.</p>
+    </div>
+  </section>
+
+  <!-- BASE MENSAL -->
+  <section data-panel="base" hidden style="display:flex;flex-direction:column;gap:18px">
+    <div class="panel">
+      <div class="toolbar">
+        <h2>Base mensal (o que vai para o Power Query)</h2>
+        <div class="row">
+          <label>De<input type="month" id="bFrom"></label>
+          <label>Até<input type="month" id="bTo"></label>
+        </div>
+      </div>
+      <div class="kpis" id="bKpis"></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Mês</th><th class="n">Colab.</th><th class="n">Folha fixa</th><th class="n">FGTS</th><th class="n">Manutenção</th><th class="n">Refeições/Hotel</th><th class="n">Rateio utilidades</th><th class="n">Aluguel</th><th class="n">Custo fixo total</th><th class="n">Imposto s/ fat.</th><th>Alertas</th></tr></thead>
+        <tbody id="bBody"></tbody>
+      </table></div>
+      <p class="hint">Custo fixo total = folha + FGTS + manutenção + refeições/hotel + rateio + aluguel. O imposto sobre faturamento é um percentual e só vira valor quando cruzado com o faturamento do mês.</p>
+    </div>
+  </section>
+
+  <!-- POWER QUERY -->
+  <section data-panel="pq" hidden class="grid">
+    <div class="panel">
+      <h2>Exportar a base</h2>
+      <p class="hint">Gera um Excel com todas as unidades: <code>Unidades</code>, <code>Funcionarios</code> e <code>Custos</code> (cadastros com vigência) e <code>Base_Func_Mes</code>, <code>Base_Custos_Mes</code> e <code>Base_Resumo_Mes</code> (uma linha por unidade e mês; chaves <code>AnoMes</code> e <code>Unidade</code>). Cada linha leva Empresa, Matriz/Filial, Cidade e UF.</p>
+      <div class="row">
+        <label>Meses de<input type="month" id="eFrom"></label>
+        <label>até<input type="month" id="eTo"></label>
+      </div>
+      <div class="btns"><button class="b pri" id="dGo" type="button">Gravar no Drive para o Power Query</button><button class="b" id="eGo" type="button">Baixar .xlsx</button></div>
+      <p class="hint">As abas Base_* da planilha são atualizadas a cada gravação. “Gravar no Drive” cria o arquivo <code>Base_Custos_PV.xlsx</code> na pasta <code>Analise_Custos_PowerQuery</code> do seu Drive; com o Google Drive para computador, ele aparece numa pasta local que o Power Query lê.</p>
+      <div id="eMsg" class="msg" hidden></div>
+      <hr class="rule">
+      <h2>Importar planilha</h2>
+      <p class="hint">Carrega linhas de uma planilha Excel no mesmo formato do arquivo original (guias FUNCIONÁRIOS e CUSTOS, com cabeçalho na linha de “Ano”). As linhas entram na unidade selecionada no topo. Registros idênticos já cadastrados são ignorados.</p>
+      <input type="file" id="iFile" accept=".xlsx,.xlsm,.xls">
+      <div id="iMsg" class="msg" hidden></div>
+    </div>
+    <div class="panel">
+      <h2>Consulta Power Query</h2>
+      <ol class="steps">
+        <li>Instale o Google Drive para computador e use “Gravar no Drive” (ou ative a atualização diária no menu Custos PV da planilha). O arquivo é substituído a cada exportação.</li>
+        <li>No Excel do faturamento: Dados › Obter Dados › Consulta Nula › Editor Avançado, cole o código abaixo.</li>
+        <li>Ajuste o caminho e os nomes da consulta e colunas de faturamento. Atualizar tudo traz os novos cadastros.</li>
+      </ol>
+      <div class="row">
+        <label style="flex:2;min-width:220px">Caminho do arquivo exportado<input id="pqPath" value="G:\Meu Drive\Analise_Custos_PowerQuery\Base_Custos_PV.xlsx"></label>
+        <label>Consulta de faturamento<input id="pqFat" value="Faturamento"></label>
+        <label>Coluna de data<input id="pqData" value="Data"></label>
+        <label>Coluna de valor<input id="pqValor" value="Valor"></label>
+        <label>Coluna de unidade <small>(opcional)</small><input id="pqUni" placeholder="vazio = soma todas"></label>
+      </div>
+      <textarea id="pqCode" readonly spellcheck="false"></textarea>
+      <div class="btns"><button class="b" id="pqCopy" type="button">Copiar código</button><span class="hint" id="pqCopied"></span></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const NUM = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+const CUSTO_FIELDS = [
+  {k:'taxaFgts', l:'Taxa FGTS', t:'pct', x:'Taxa FGTS'},
+  {k:'valorMedioRescisoes', l:'Valor médio rescisões', t:'brl', x:'Valor Médio Recisões'},
+  {k:'impostoFaturamento', l:'Imposto sobre faturamento', t:'pct', x:'Imposto sobre Faturamento'},
+  {k:'etanolLitro', l:'Valor médio litro etanol', t:'brl', x:'Valor médio do litro de Etanol'},
+  {k:'kmGarantia', l:'Valor KM em garantia', t:'brl', x:'Valor do KM em garantia'},
+  {k:'kmForaGarantia', l:'Valor KM fora garantia', t:'brl', x:'Valor do KM Fora de Garantia'},
+  {k:'horaGarantia', l:'Valor hora garantia', t:'brl', x:'Valor hora Garantia'},
+  {k:'horaForaGarantia', l:'Valor hora fora garantia', t:'brl', x:'Valor hora  fora Garantia'},
+  {k:'qtVeiculos', l:'Qt. veículos', t:'int', x:'Qt. Veículos'},
+  {k:'manutencaoMes', l:'Custo médio manutenção/mês', t:'brl', x:'Custo Médio Manutenção/Mês'},
+  {k:'refeicoesHotelMes', l:'Refeições/hotel por mês', t:'brl', x:'Custo Médio Mensal Refeições_Hotel para atendimentos e treinamentos'},
+  {k:'rateioUtilidadesMes', l:'Rateio energia, água, telefone, internet, sistemas', t:'brl', x:'Mèdia/Mês- Rateio Energia, água, telefones, internet, sistemas'},
+  {k:'aluguel', l:'Custo aluguel prédio', t:'brl', x:'Custo Aluguel Prédio'},
+];
+
+let canWrite=true;
+let funcs=[], custos=[], allFuncs=[], allCustos=[], units=[], unit=null;
+const UFS='AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
+$('u_uf').insertAdjacentHTML('beforeend', UFS.map(u=>`<option>${u}</option>`).join(''));
+let fEdit=null, cEdit=null;
+
+// ---------- datas / vigência ----------
+const ymOf = s => { if(!s) return null; const [y,m]=s.split('-').map(Number); return y*12+(m-1); };
+const ymStr = n => `${Math.floor(n/12)}-${String(n%12+1).padStart(2,'0')}`;
+const ymLabel = n => `${MESES[n%12]}/${Math.floor(n/12)}`;
+const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
+const today = new Date(); const nowYM = today.getFullYear()*12+today.getMonth();
+const validIn = (r, ym) => ymOf(r.inicio) <= ym && (!r.fim || ymOf(r.fim) >= ym);
+const lastDayPrev = ym => { const y=Math.floor((ym-1)/12), m=(ym-1)%12; const d=new Date(Date.UTC(y,m+1,0)); return d.toISOString().slice(0,10); };
+const fmtVal = (t,v) => v==null||v==='' ? '—' : t==='pct' ? NUM.format(v*100)+'%' : t==='brl' ? BRL.format(v) : NUM.format(v);
+
+function showMsg(el, text, err){ el.textContent=text; el.classList.toggle('err',!!err); el.hidden=false; clearTimeout(el._t); el._t=setTimeout(()=>el.hidden=true, 5000); }
+
+// ---------- abas ----------
+function setTab(t){
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===t));
+  document.querySelectorAll('[data-panel]').forEach(p=>p.hidden = p.dataset.panel!==t);
+  try{localStorage.setItem('cpv-tab',t)}catch(e){}
+}
+$('tabs').addEventListener('click', e=>{const b=e.target.closest('button'); if(b) setTab(b.dataset.tab);});
+try{ const t=localStorage.getItem('cpv-tab'); if(t) setTab(t);}catch(e){}
+
+// ---------- FUNCIONÁRIOS ----------
+function fStatus(r){
+  const tags=[];
+  if(r.fim && ymOf(r.fim) < nowYM) tags.push(['end','Desligado']);
+  else if(ymOf(r.inicio) > nowYM) tags.push(['warn','Futuro']);
+  else tags.push(['ok','Ativo']);
+  if(r.salario==null || !r.funcao) tags.push(['bad','Incompleto']);
+  const same = funcs.filter(o=>o.id!==r.id && norm(o.colaborador)===norm(r.colaborador));
+  if(same.some(o=>overlap(o,r))) tags.push(['warn','Sobreposto']);
+  return tags;
+}
+const norm = s => (s||'').trim().toLowerCase();
+const overlap = (a,b) => ymOf(a.inicio) <= (b.fim?ymOf(b.fim):1e9) && ymOf(b.inicio) <= (a.fim?ymOf(a.fim):1e9);
+function strip(r, year){
+  let h='<span class="strip" title="Meses de vigência em '+year+'">';
+  for(let m=0;m<12;m++) h+=`<i class="${validIn(r,year*12+m)?'a':''}"></i>`;
+  return h+'</span>';
+}
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderFuncs(){
+  $('cFunc').textContent=funcs.length;
+  const year = today.getFullYear(); $('fYear').textContent=year;
+  const q=norm($('fSearch').value), f=$('fFilter').value;
+  const rows = funcs.slice().sort((a,b)=>norm(a.colaborador).localeCompare(norm(b.colaborador))||a.inicio.localeCompare(b.inicio))
+    .filter(r=>!q || norm(r.colaborador).includes(q) || norm(r.funcao).includes(q))
+    .filter(r=>{const s=fStatus(r).map(x=>x[1]); return f==='all'||(f==='ativo'&&s.includes('Ativo'))||(f==='enc'&&s.includes('Desligado'))||(f==='inc'&&s.includes('Incompleto'));});
+  if(!funcs.length){ $('fBody').innerHTML='<tr><td colspan="7" class="empty">Nenhum funcionário ainda. Preencha o formulário ao lado para cadastrar o primeiro, ou importe a planilha na aba Exportar e Power Query.</td></tr>'; return; }
+  if(!rows.length){ $('fBody').innerHTML='<tr><td colspan="7" class="empty">Nenhum registro com esse filtro.</td></tr>'; return; }
+  $('fBody').innerHTML = rows.map(r=>`<tr class="click ${fEdit===r.id?'sel':''}" data-id="${r.id}">
+    <td>${esc(r.colaborador)}</td><td>${esc(r.funcao)||'<span class="chip bad">sem função</span>'}</td>
+    <td class="n">${r.salario==null?'—':BRL.format(r.salario)}</td><td>${fmtD(r.inicio)}</td><td>${fmtD(r.fim)}</td>
+    <td>${strip(r,year)}</td><td>${fStatus(r).map(([c,t])=>`<span class="chip ${c}">${t}</span>`).join(' ')}</td></tr>`).join('');
+}
+$('fBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-id]'); if(tr) loadFunc(tr.dataset.id);});
+$('fSearch').addEventListener('input',renderFuncs); $('fFilter').addEventListener('change',renderFuncs);
+
+function loadFunc(id){
+  const r=funcs.find(x=>x.id===id); if(!r) return; fEdit=id;
+  $('f_colaborador').value=r.colaborador||''; $('f_funcao').value=r.funcao||''; $('f_salario').value=r.salario??'';
+  $('f_inicio').value=r.inicio||''; $('f_fim').value=r.fim||'';
+  $('fTitle').textContent='Editar: '+r.colaborador; $('fDel').hidden=$('fVig').hidden=false;
+  $('fVigBox').hidden=true; $('fConfirm').hidden=true; renderFuncs();
+}
+function clearFunc(){ fEdit=null; $('fForm').reset(); $('fTitle').textContent='Novo funcionário'; $('fDel').hidden=$('fVig').hidden=true; $('fVigBox').hidden=$('fConfirm').hidden=true; renderFuncs(); }
+function readFunc(){
+  const sal=$('f_salario').value;
+  return {colaborador:$('f_colaborador').value.trim(), funcao:$('f_funcao').value.trim(), salario: sal===''?null:Number(sal),
+    inicio:$('f_inicio').value, fim:$('f_fim').value||null};
+}
+function checkDates(r){ if(!r.inicio) return 'Informe a data de início.'; if(r.fim && r.fim<r.inicio) return 'A data fim é anterior à data de início.'; return null; }
+$('fNew').onclick=clearFunc;
+$('fForm').addEventListener('submit', async e=>{
+  e.preventDefault(); const r=readFunc(); const err=checkDates(r); if(err) return showMsg($('fMsg'),err,true);
+  try{ await call('apiSalvar','funcionarios',{...r, unidadeId:unit, id:fEdit||null});
+       if(fEdit) showMsg($('fMsg'),'Alterações salvas na planilha.'); else { showMsg($('fMsg'),r.colaborador+' cadastrado.'); clearFunc(); } }
+  catch(x){ showMsg($('fMsg'), writeErr(x), true); }
+});
+$('fDel').onclick=()=>{$('fConfirm').hidden=false;}; $('fDelNo').onclick=()=>{$('fConfirm').hidden=true;};
+$('fDelYes').onclick=async()=>{ try{ await call('apiExcluir','funcionarios',fEdit); clearFunc(); showMsg($('fMsg'),'Registro excluído.'); }catch(x){ showMsg($('fMsg'),writeErr(x),true);} };
+$('fVig').onclick=()=>{ $('fVigBox').hidden=!$('fVigBox').hidden; $('fVigMes').value=ymStr(nowYM); };
+$('fVigGo').onclick=async()=>{
+  const old=funcs.find(x=>x.id===fEdit); const ym=ymOf($('fVigMes').value); if(!old||ym==null) return;
+  if(ym<=ymOf(old.inicio)) return showMsg($('fMsg'),'A nova vigência precisa começar depois do mês de início do registro atual.',true);
+  const nr={...readFunc(), inicio: ymStr(ym)+'-01', fim: old.fim && ymOf(old.fim)>=ym ? old.fim : null};
+  const {id, ...oldBody}=old;
+  try{ const res=await call('apiNovaVigencia','funcionarios',old.id,nr.inicio,nr); fEdit=res.id; loadFunc(res.id);
+       showMsg($('fMsg'),'Nova vigência criada a partir de '+ymLabel(ym)+'.'); }
+  catch(x){ showMsg($('fMsg'),writeErr(x),true); }
+};
+
+// ---------- CUSTOS ----------
+$('cFields').innerHTML = CUSTO_FIELDS.map(f=>`<label class="${f.l.length>30?'full':''}">${f.l}${f.t==='pct'?' (%)':f.t==='brl'?' (R$)':''}<input id="c_${f.k}" type="number" step="${f.t==='int'?1:'0.01'}" min="0"></label>`).join('')
+  + '<label>Data início<input id="c_inicio" type="date" required></label><label>Data fim <small>(vazio = vigente)</small><input id="c_fim" type="date"></label>';
+$('cHead').innerHTML = '<th>Início</th><th>Fim</th><th>Situação</th>' + CUSTO_FIELDS.map(f=>`<th class="n" title="${f.l}">${f.l.replace(/ por mês|\/mês/,'')}</th>`).join('');
+function cStatus(r){
+  const t=[]; if(r.fim && ymOf(r.fim)<nowYM) t.push(['end','Encerrada']); else if(ymOf(r.inicio)>nowYM) t.push(['warn','Futura']); else t.push(['ok','Vigente']);
+  if(custos.some(o=>o.id!==r.id && overlap(o,r))) t.push(['bad','Sobreposta']); return t;
+}
+function renderCustos(){
+  $('cCusto').textContent=custos.length;
+  if(!custos.length){ $('cBody').innerHTML=`<tr><td colspan="${CUSTO_FIELDS.length+3}" class="empty">Nenhuma vigência de custos. Preencha os parâmetros ao lado com a data de início.</td></tr>`; return; }
+  $('cBody').innerHTML = custos.slice().sort((a,b)=>b.inicio.localeCompare(a.inicio)).map(r=>`<tr class="click ${cEdit===r.id?'sel':''}" data-id="${r.id}">
+    <td>${fmtD(r.inicio)}</td><td>${fmtD(r.fim)}</td><td>${cStatus(r).map(([c,t])=>`<span class="chip ${c}">${t}</span>`).join(' ')}</td>
+    ${CUSTO_FIELDS.map(f=>`<td class="n">${fmtVal(f.t,r[f.k])}</td>`).join('')}</tr>`).join('');
+}
+$('cBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-id]'); if(tr) loadCusto(tr.dataset.id);});
+function loadCusto(id){
+  const r=custos.find(x=>x.id===id); if(!r) return; cEdit=id;
+  CUSTO_FIELDS.forEach(f=>{ const v=r[f.k]; $('c_'+f.k).value = v==null?'': f.t==='pct'? +(v*100).toFixed(4) : v; });
+  $('c_inicio').value=r.inicio||''; $('c_fim').value=r.fim||'';
+  $('cTitle').textContent='Editar vigência de '+fmtD(r.inicio); $('cDel').hidden=$('cVig').hidden=false; $('cVigBox').hidden=$('cConfirm').hidden=true; renderCustos();
+}
+function clearCusto(){ cEdit=null; $('cForm').reset(); $('cTitle').textContent='Nova vigência de custos'; $('cDel').hidden=$('cVig').hidden=true; $('cVigBox').hidden=$('cConfirm').hidden=true; renderCustos(); }
+function readCusto(){
+  const r={inicio:$('c_inicio').value, fim:$('c_fim').value||null};
+  CUSTO_FIELDS.forEach(f=>{ const v=$('c_'+f.k).value; r[f.k]= v===''?null : f.t==='pct'? Number(v)/100 : Number(v); });
+  return r;
+}
+$('cNew').onclick=clearCusto;
+$('cForm').addEventListener('submit', async e=>{
+  e.preventDefault(); const r=readCusto(); const err=checkDates(r); if(err) return showMsg($('cMsg'),err,true);
+  const clash=custos.find(o=>o.id!==cEdit && overlap(o,r));
+  try{ const wasEdit=cEdit; await call('apiSalvar','custos',{...r, unidadeId:unit, id:cEdit||null}); if(!wasEdit) clearCusto();
+       showMsg($('cMsg'), clash ? 'Salvo, mas há sobreposição com a vigência de '+fmtD(clash.inicio)+'. Ajuste a data fim de uma delas.' : 'Vigência salva.', !!clash); }
+  catch(x){ showMsg($('cMsg'),writeErr(x),true); }
+});
+$('cDel').onclick=()=>{$('cConfirm').hidden=false;}; $('cDelNo').onclick=()=>{$('cConfirm').hidden=true;};
+$('cDelYes').onclick=async()=>{ try{ await call('apiExcluir','custos',cEdit); clearCusto(); showMsg($('cMsg'),'Vigência excluída.'); }catch(x){ showMsg($('cMsg'),writeErr(x),true);} };
+$('cVig').onclick=()=>{ $('cVigBox').hidden=!$('cVigBox').hidden; $('cVigMes').value=ymStr(nowYM); };
+$('cVigGo').onclick=async()=>{
+  const old=custos.find(x=>x.id===cEdit); const ym=ymOf($('cVigMes').value); if(!old||ym==null) return;
+  if(ym<=ymOf(old.inicio)) return showMsg($('cMsg'),'A nova vigência precisa começar depois do mês de início da atual.',true);
+  const nr={...readCusto(), inicio: ymStr(ym)+'-01', fim: old.fim && ymOf(old.fim)>=ym ? old.fim : null};
+  const {id, ...oldBody}=old;
+  try{ const res=await call('apiNovaVigencia','custos',old.id,nr.inicio,nr); cEdit=res.id; loadCusto(res.id);
+       showMsg($('cMsg'),'Nova vigência a partir de '+ymLabel(ym)+'.'); }
+  catch(x){ showMsg($('cMsg'),writeErr(x),true); }
+};
+
+// ---------- BASE MENSAL ----------
+function defaultRange(){
+  const starts=[...funcs,...custos].map(r=>ymOf(r.inicio)).filter(x=>x!=null);
+  const from = starts.length ? Math.min(...starts) : today.getFullYear()*12;
+  return [from, today.getFullYear()*12+11];
+}
+function buildBase(from,to,F=funcs,C=custos,U=null){
+  const fMes=[], cMes=[], resumo=[];
+  const uc = U ? {Empresa:U.empresa||'', Unidade:unitLabel(U), Tipo:U.tipo||'', Cidade:U.cidade||'', UF:U.uf||''} : {};
+  for(let ym=from; ym<=to; ym++){
+    const d=new Date(Date.UTC(Math.floor(ym/12), ym%12, 1));
+    const cs=C.filter(c=>validIn(c,ym)); const c=cs[0]||null;
+    const fs=F.filter(f=>validIn(f,ym));
+    const taxa=c?.taxaFgts ?? 0;
+    fs.forEach(f=>{
+      const adm = ymOf(f.inicio)===ym, desl = f.fim && ymOf(f.fim)===ym;
+      fMes.push({...uc, AnoMes:d, Ano:Math.floor(ym/12), Mes:ym%12+1, Colaborador:f.colaborador.trim(), Funcao:f.funcao||'', SalarioFixo:f.salario??0, FGTS:+((f.salario??0)*taxa).toFixed(2),
+        Movimento: adm&&desl?'Admitido e desligado':adm?'Admitido':desl?'Desligado':'', DataInicio:f.inicio, DataFim:f.fim||''});
+    });
+    if(c){ const row={...uc, AnoMes:d, Ano:Math.floor(ym/12), Mes:ym%12+1}; CUSTO_FIELDS.forEach(f=>row[f.x.replace(/\s+/g,' ').trim()]=c[f.k]??0); row.VigenciaInicio=c.inicio; row.VigenciaFim=c.fim||''; cMes.push(row); }
+    const folha=fs.reduce((s,f)=>s+(f.salario??0),0), fgts=+(folha*taxa).toFixed(2);
+    const man=c?.manutencaoMes??0, ref=c?.refeicoesHotelMes??0, rat=c?.rateioUtilidadesMes??0, alu=c?.aluguel??0;
+    const alerts=[]; if(!c) alerts.push('Sem custos'); if(cs.length>1) alerts.push('Custos sobrepostos'); const inc=fs.filter(f=>f.salario==null).length; if(inc) alerts.push(inc+' sem salário');
+    resumo.push({...uc, AnoMes:d, Ano:Math.floor(ym/12), Mes:ym%12+1, QtColaboradores:fs.length, FolhaFixa:+folha.toFixed(2), FGTS:fgts, Manutencao:man, RefeicoesHotel:ref, RateioUtilidades:rat, Aluguel:alu,
+      CustoFixoTotal:+(folha+fgts+man+ref+rat+alu).toFixed(2), ImpostoFaturamentoPct:c?.impostoFaturamento??0, QtVeiculos:c?.qtVeiculos??0, Alertas:alerts.join('; '), _ym:ym});
+  }
+  return {fMes,cMes,resumo};
+}
+function renderBase(){
+  const from=ymOf($('bFrom').value), to=ymOf($('bTo').value);
+  if(from==null||to==null||to<from){ $('bBody').innerHTML='<tr><td colspan="11" class="empty">Escolha um intervalo de meses válido.</td></tr>'; $('bKpis').innerHTML=''; return; }
+  const {resumo}=buildBase(from,to);
+  const cur=resumo.find(r=>r._ym===nowYM)||resumo[resumo.length-1];
+  const tot=resumo.reduce((s,r)=>s+r.CustoFixoTotal,0);
+  $('bKpis').innerHTML = `<div class="kpi"><span>Custo fixo em ${ymLabel(cur._ym)}</span><b>${BRL.format(cur.CustoFixoTotal)}</b></div>
+    <div class="kpi"><span>Colaboradores em ${ymLabel(cur._ym)}</span><b>${cur.QtColaboradores}</b></div>
+    <div class="kpi"><span>Custo fixo no período</span><b>${BRL.format(tot)}</b></div>
+    <div class="kpi"><span>Imposto s/ faturamento em ${ymLabel(cur._ym)}</span><b>${NUM.format(cur.ImpostoFaturamentoPct*100)}%</b></div>`;
+  $('bBody').innerHTML = resumo.map(r=>`<tr><td>${ymLabel(r._ym)}</td><td class="n">${r.QtColaboradores}</td><td class="n">${BRL.format(r.FolhaFixa)}</td><td class="n">${BRL.format(r.FGTS)}</td>
+    <td class="n">${BRL.format(r.Manutencao)}</td><td class="n">${BRL.format(r.RefeicoesHotel)}</td><td class="n">${BRL.format(r.RateioUtilidades)}</td><td class="n">${BRL.format(r.Aluguel)}</td>
+    <td class="n"><b>${BRL.format(r.CustoFixoTotal)}</b></td><td class="n">${NUM.format(r.ImpostoFaturamentoPct*100)}%</td>
+    <td>${r.Alertas?r.Alertas.split('; ').map(a=>`<span class="chip ${a.startsWith('Sem')||a.includes('sobrep')?'bad':'warn'}">${a}</span>`).join(' '):''}</td></tr>`).join('');
+}
+['bFrom','bTo'].forEach(id=>$(id).addEventListener('change',renderBase));
+let rangeTouched=false; ['bFrom','bTo','eFrom','eTo'].forEach(id=>$(id).addEventListener('change',()=>rangeTouched=true));
+function syncRange(){ if(rangeTouched) return; const [a,b]=defaultRange(); $('bFrom').value=$('eFrom').value=ymStr(a); $('bTo').value=$('eTo').value=ymStr(b); }
+
+// ---------- EXPORTAR ----------
+$('eGo').onclick=async()=>{
+  if(typeof XLSX==='undefined') return showMsg($('eMsg'),'A biblioteca de Excel não carregou. Recarregue a página.',true);
+  const from=ymOf($('eFrom').value), to=ymOf($('eTo').value); if(from==null||to==null||to<from) return showMsg($('eMsg'),'Escolha um intervalo de meses válido.',true);
+  const fMes=[], cMes=[], resumo=[], fCad=[], cCad=[];
+  for(const U of units){
+    const F=allFuncs.filter(f=>f.unidadeId===U.id), C=allCustos.filter(c=>c.unidadeId===U.id);
+    const r=buildBase(from,to,F,C,U); fMes.push(...r.fMes); cMes.push(...r.cMes); resumo.push(...r.resumo);
+    const uc={Empresa:U.empresa||'', Unidade:unitLabel(U), Tipo:U.tipo||'', Cidade:U.cidade||'', UF:U.uf||''};
+    F.forEach(f=>fCad.push({...uc, Colaborador:f.colaborador.trim(), Funcao:f.funcao||'', SalarioFixo:f.salario, DataInicio:f.inicio, DataFim:f.fim||''}));
+    C.forEach(c=>{const x={...uc, DataInicio:c.inicio, DataFim:c.fim||''}; CUSTO_FIELDS.forEach(f=>x[f.x.replace(/\s+/g,' ').trim()]=c[f.k]); cCad.push(x);});
+  }
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name)=>XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows,{cellDates:true, dateNF:'yyyy-mm-dd'}), name);
+  add(units.map(U=>({Empresa:U.empresa||'', Unidade:unitLabel(U), Tipo:U.tipo||'', Cidade:U.cidade||'', UF:U.uf||''})),'Unidades');
+  add(fCad,'Funcionarios'); add(cCad,'Custos');
+  add(fMes,'Base_Func_Mes'); add(cMes,'Base_Custos_Mes'); add(resumo.map(({_ym,...r})=>r),'Base_Resumo_Mes');
+  const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  const a=document.createElement('a'); a.href=url; a.download='Base_Custos_PV.xlsx'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  showMsg($('eMsg'),'Arquivo gerado: '+units.length+' unidade(s), '+(to-from+1)+' meses.');
+};
+$('dGo').onclick=async()=>{
+  $('dGo').disabled=true; showMsg($('eMsg'),'Gravando no Drive…');
+  try{ const url=await call('apiExportarDrive'); $('eMsg').innerHTML='Arquivo gravado no Drive. <a href="'+esc(url)+'" target="_blank" rel="noopener">Abrir no Drive</a>'; $('eMsg').hidden=false; }
+  catch(x){ showMsg($('eMsg'),writeErr(x),true); }
+  $('dGo').disabled=false;
+};
+
+// ---------- IMPORTAR ----------
+const toISO = v => { if(v==null||v==='') return null; if(v instanceof Date) return new Date(v.getTime()-v.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  if(typeof v==='number'){ const d=XLSX.SSF.parse_date_code(v); return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`; }
+  const m=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:null; };
+const nk = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+function sheetRows(ws){
+  const a=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  const hi=a.findIndex(r=>r.some(c=>nk(c)==='ano')); if(hi<0) return [];
+  const h=a[hi].map(nk); return a.slice(hi+1).filter(r=>r.some(c=>c!=null&&c!=='')).map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]])));
+}
+$('iFile').addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{cellDates:true});
+    const fSh=wb.SheetNames.find(n=>nk(n).startsWith('funcion')), cSh=wb.SheetNames.find(n=>nk(n).startsWith('custo'));
+    let nf=0, nc=0, skip=0; const fRecs=[], cRecs=[];
+    if(fSh) for(const r of sheetRows(wb.Sheets[fSh])){
+      if(!r['colaborador']) continue;
+      const rec={colaborador:String(r['colaborador']).trim(), funcao:r['funcao']?String(r['funcao']).trim():'', salario:r['salario fixo']==null?null:Number(r['salario fixo']),
+        inicio:toISO(r['data inicio'])||(r['ano']?r['ano']+'-01-01':null), fim:toISO(r['data fim'])};
+      if(!rec.inicio){skip++;continue;}
+      if(funcs.some(o=>norm(o.colaborador)===norm(rec.colaborador)&&o.inicio===rec.inicio&&(o.fim||null)===rec.fim)){skip++;continue;}
+      fRecs.push({unidadeId:unit, ...rec}); nf++;
+    }
+    if(cSh) for(const r of sheetRows(wb.Sheets[cSh])){
+      const rec={inicio:toISO(r['data inicio'])||(r['ano']?r['ano']+'-01-01':null), fim:toISO(r['data fim'])};
+      if(!rec.inicio){skip++;continue;}
+      CUSTO_FIELDS.forEach(f=>{const v=r[nk(f.x)]; rec[f.k]= v==null||v===''?null:Number(v);});
+      if(custos.some(o=>o.inicio===rec.inicio)){skip++;continue;}
+      cRecs.push({unidadeId:unit, ...rec}); nc++;
+    }
+    if(fRecs.length) await call('apiSalvarVarios','funcionarios',fRecs);
+    if(cRecs.length) await call('apiSalvarVarios','custos',cRecs);
+    showMsg($('iMsg'),`Importados ${nf} funcionário(s) e ${nc} vigência(s) de custos. ${skip} linha(s) ignoradas.`);
+  }catch(x){ showMsg($('iMsg'), x?.message && !(x instanceof TypeError) ? writeErr(x) : 'Não consegui ler a planilha. Confira se tem as guias FUNCIONÁRIOS e CUSTOS.', true); }
+  e.target.value='';
+});
+
+// ---------- POWER QUERY ----------
+function pqCode(){
+  const p=$('pqPath').value.replace(/"/g,'""'), fat=$('pqFat').value||'Faturamento', dt=$('pqData').value||'Data', vl=$('pqValor').value||'Valor', uc=$('pqUni').value.trim();
+  const q = s => '#"'+s.replace(/"/g,'""')+'"';
+  const tipos = `{"AnoMes", type date}, {"Ano", Int64.Type}, {"Mes", Int64.Type}, {"QtColaboradores", Int64.Type},
+        {"FolhaFixa", type number}, {"FGTS", type number}, {"Manutencao", type number},
+        {"RefeicoesHotel", type number}, {"RateioUtilidades", type number}, {"Aluguel", type number},
+        {"CustoFixoTotal", type number}, {"ImpostoFaturamentoPct", type number}, {"QtVeiculos", Int64.Type}`;
+  const cols = `{"QtColaboradores","FolhaFixa","FGTS","Manutencao","RefeicoesHotel","RateioUtilidades","Aluguel","CustoFixoTotal","ImpostoFaturamentoPct"}`;
+  const meio = uc ? `
+    // 2) Faturamento por mês e unidade (coluna "${uc}" deve trazer o mesmo texto da coluna Unidade do cadastro, ex.: "Filial - Curitiba/PR")
+    FatMes = Table.AddColumn(${q(fat)}, "AnoMes", each Date.StartOfMonth(Date.From(Record.Field(_, "${dt}"))), type date),
+    FatUni = Table.RenameColumns(FatMes, {{"${uc}", "Unidade"}}),
+    FatAgr = Table.Group(FatUni, {"AnoMes", "Unidade"}, {{"Faturamento", each List.Sum(Table.Column(_, "${vl}")), type number}}),
+    Base = Tipos,
+
+    // 3) Cruzamento por mês e unidade
+    Cruz = Table.NestedJoin(FatAgr, {"AnoMes", "Unidade"}, Base, {"AnoMes", "Unidade"}, "Custos", JoinKind.LeftOuter),` : `
+    // 2) Sem coluna de unidade no faturamento: soma os custos de todas as unidades por mês
+    Base = Table.Group(Tipos, {"AnoMes"}, {
+        {"QtColaboradores", each List.Sum([QtColaboradores]), Int64.Type}, {"FolhaFixa", each List.Sum([FolhaFixa]), type number},
+        {"FGTS", each List.Sum([FGTS]), type number}, {"Manutencao", each List.Sum([Manutencao]), type number},
+        {"RefeicoesHotel", each List.Sum([RefeicoesHotel]), type number}, {"RateioUtilidades", each List.Sum([RateioUtilidades]), type number},
+        {"Aluguel", each List.Sum([Aluguel]), type number}, {"CustoFixoTotal", each List.Sum([CustoFixoTotal]), type number},
+        {"ImpostoFaturamentoPct", each List.Max([ImpostoFaturamentoPct]), type number}}),
+    FatMes = Table.AddColumn(${q(fat)}, "AnoMes", each Date.StartOfMonth(Date.From(Record.Field(_, "${dt}"))), type date),
+    FatAgr = Table.Group(FatMes, {"AnoMes"}, {{"Faturamento", each List.Sum(Table.Column(_, "${vl}")), type number}}),
+
+    // 3) Cruzamento mês a mês
+    Cruz = Table.NestedJoin(FatAgr, {"AnoMes"}, Base, {"AnoMes"}, "Custos", JoinKind.LeftOuter),`;
+  return `// Base_Resumo_Mes: custos fixos por unidade e mês vindos do cadastro
+let
+    Caminho = "${p}",
+    Fonte = Excel.Workbook(File.Contents(Caminho), null, true),
+    Resumo = Table.PromoteHeaders(Fonte{[Item="Base_Resumo_Mes",Kind="Sheet"]}[Data], [PromoteAllScalars=true]),
+    Tipos = Table.TransformColumnTypes(Resumo, {
+        {"Empresa", type text}, {"Unidade", type text}, {"Tipo", type text}, {"Cidade", type text}, {"UF", type text},
+        ${tipos}}),
+${meio}
+    Exp = Table.ExpandTableColumn(Cruz, "Custos", ${cols}),
+    Imposto = Table.AddColumn(Exp, "ImpostoFaturamento", each [Faturamento] * [ImpostoFaturamentoPct], type number),
+    Resultado = Table.AddColumn(Imposto, "Resultado", each [Faturamento] - [ImpostoFaturamento] - [CustoFixoTotal], type number),
+    Margem = Table.AddColumn(Resultado, "MargemPct", each if [Faturamento] = 0 then null else [Resultado] / [Faturamento], Percentage.Type),
+    Ordenado = Table.Sort(Margem, {{"AnoMes", Order.Ascending}})
+in
+    Ordenado
+
+// Para detalhar por colaborador ou usar os valores de KM/hora, troque
+// "Base_Resumo_Mes" por "Base_Func_Mes" ou "Base_Custos_Mes" (chaves AnoMes e Unidade).`;
+}
+function renderPq(){ $('pqCode').value=pqCode(); }
+['pqPath','pqFat','pqData','pqValor','pqUni'].forEach(id=>$(id).addEventListener('input',renderPq)); renderPq();
+$('pqCopy').onclick=()=>{ const t=$('pqCode').value; navigator.clipboard.writeText(t).then(()=>{$('pqCopied').textContent='Copiado.';}).catch(()=>{ $('pqCode').select(); $('pqCopied').textContent='Texto selecionado: use Ctrl+C.'; }); };
+
+// ---------- UNIDADES ----------
+const unitLabel = U => `${U.tipo||'Matriz'} - ${U.cidade||'?'}/${U.uf||'?'}`;
+function applyUnit(){
+  funcs = allFuncs.filter(f=>f.unidadeId===unit); custos = allCustos.filter(c=>c.unidadeId===unit);
+  if(fEdit&&!funcs.some(f=>f.id===fEdit)) clearFunc(); if(cEdit&&!custos.some(c=>c.id===cEdit)) clearCusto();
+}
+function renderUnit(){
+  const U = units.find(u=>u.id===unit);
+  $('uSel').innerHTML = units.map(u=>`<option value="${u.id}" ${u.id===unit?'selected':''}>${esc((u.empresa||'Sem nome')+' · '+unitLabel(u))}</option>`).join('') || '<option value="">Nenhuma unidade</option>';
+  $('idNome').textContent = U?.empresa || (creating?'Nova unidade':'Empresa não identificada'); $('idNome').classList.toggle('vazio', !U?.empresa);
+  $('idTipo').textContent = U?.tipo || 'Matriz'; $('idTipo').classList.toggle('filial', U?.tipo==='Filial');
+  $('idLocal').textContent = U && (U.cidade||U.uf) ? `${U.cidade||'—'} / ${U.uf||'—'}` : 'Cidade / UF não informados';
+  if(creating || document.activeElement?.closest?.('#uForm')) return;
+  $('u_empresa').value=U?.empresa||''; $('u_tipo').value=U?.tipo||'Matriz'; $('u_cidade').value=U?.cidade||''; $('u_uf').value=U?.uf||'';
+}
+let creating=false;
+$('uSel').addEventListener('change',()=>{ creating=false; unit=$('uSel').value; try{localStorage.setItem('cpv-unit',unit)}catch(e){} rangeTouched=false; applyUnit(); renderAll(); });
+$('uForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const data={id:unit||null, empresa:$('u_empresa').value.trim(), tipo:$('u_tipo').value, cidade:$('u_cidade').value.trim(), uf:$('u_uf').value};
+  if(!data.empresa||!data.cidade||!data.uf) return showMsg($('uMsg'),'Preencha nome da empresa, cidade e UF.',true);
+  try{ const res=await call('apiSalvar','unidades',data); if(!unit){ unit=res.id; try{localStorage.setItem('cpv-unit',unit)}catch(x){} }
+       creating=false; $('u_empresa').blur(); applyUnit(); renderAll(); showMsg($('uMsg'),'Identificação salva na planilha.'); }
+  catch(x){ showMsg($('uMsg'),writeErr(x),true); }
+});
+$('uNew').onclick=()=>{ creating=true; unit=null; applyUnit(); renderAll(); $('u_empresa').value=units[0]?.empresa||''; $('u_tipo').value='Filial'; $('u_cidade').value=''; $('u_uf').value='';
+  showMsg($('uMsg'),'Preencha a identificação da nova unidade e clique em Salvar identificação. Depois cadastre os funcionários e custos dela.'); $('u_cidade').focus(); };
+
+// ---------- SERVIDOR (Google Apps Script) ----------
+let token=null;
+try{ token=sessionStorage.getItem('cpv-token'); }catch(e){}
+// URL do app da Web do Apps Script (Implantar › Gerenciar implantações). Troque aqui se reimplantar com outra URL.
+const API_URL='https://script.google.com/macros/s/AKfycbwASFUfygMXY5yGisrnDSIL1PHbpECWsbt3alQwpj_eSBWuEfrxPErhtnMgQtYTP20JIw/exec';
+async function run(fn,...args){
+  let resp;
+  try{ resp=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn,args}),redirect:'follow'}); }
+  catch(e){ throw new Error('Sem conexão com o Google Apps Script. Verifique a internet e se o app está implantado para "Qualquer pessoa".'); }
+  let j; try{ j=await resp.json(); }catch(e){ throw new Error('O Apps Script não respondeu em JSON. Confira se o Code.gs atualizado (com doPost) foi reimplantado.'); }
+  if(!j.ok) throw new Error(j.error||'Erro no servidor.');
+  return j.data;
+}
+let busy=0;
+function setBusy(d){ busy+=d; $('dbStatus').textContent = busy>0 ? 'Gravando na planilha…' : lastStatus; }
+let lastStatus='Planilha conectada';
+async function call(fn,...a){
+  setBusy(1);
+  try{ const r=await run(fn,token,...a); if(r&&r.estado) setEstado(r.estado); return r; }
+  catch(x){ if(String(x&&x.message).includes('SESSAO_EXPIRADA')){ sair('Sua sessão expirou. Entre de novo.'); } throw x; }
+  finally{ setBusy(-1); }
+}
+function setEstado(e){
+  allFuncs=e.funcionarios||[]; allCustos=e.custos||[];
+  units=(e.unidades||[]).sort((a,b)=>(a.tipo==='Matriz'?0:1)-(b.tipo==='Matriz'?0:1)||(a.cidade||'').localeCompare(b.cidade||''));
+  if(!creating && !units.some(u=>u.id===unit)){ let saved=null; try{saved=localStorage.getItem('cpv-unit')}catch(x){} unit = units.some(u=>u.id===saved)?saved:(units[0]?.id||null); }
+  applyUnit(); renderAll();
+  const h=new Date(); lastStatus='Planilha conectada · lida às '+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0');
+  $('dbDot').className='dot on'; if(!busy) $('dbStatus').textContent=lastStatus;
+}
+async function recarregar(){ try{ setEstado(await call('apiEstado')); }catch(x){ $('dbDot').className='dot off'; $('dbStatus').textContent='Não consegui ler a planilha: '+writeErr(x); } }
+$('reload').onclick=recarregar;
+setInterval(()=>{ if(token && !document.hidden && !busy && !$('app').hidden) recarregar(); }, 120000);
+
+// ---------- SENHA ----------
+let gateMode='login';
+function gateShow(mode, text){
+  gateMode=mode; $('gate').hidden=false; $('app').hidden=true; $('gMsg').hidden=true;
+  $('gText').textContent=text; const input = mode==='login'||mode==='create';
+  $('gL0').hidden=$('gL1').hidden=$('gGo').hidden=!input; $('gL2').hidden = mode!=='create';
+  $('gTitle').textContent = mode==='create' ? 'Crie a senha de acesso' : 'Acesso restrito';
+  $('gGo').textContent = mode==='create' ? 'Criar senha e entrar' : 'Entrar';
+  $('gPass').value=$('gPass2').value=''; try{ $('gNome').value = $('gNome').value || localStorage.getItem('cpv-nome') || ''; }catch(e){}
+  if(input) setTimeout(()=>($('gNome').value?$('gPass'):$('gNome')).focus(),50);
+}
+function entrou(r){
+  token=r.token; try{sessionStorage.setItem('cpv-token',token)}catch(e){}
+  $('gate').hidden=true; $('app').hidden=false; setEstado(r.estado);
+}
+$('gForm').addEventListener('submit', async e=>{
+  e.preventDefault(); const p=$('gPass').value, nome=$('gNome').value.trim();
+  if(!nome){ $('gMsg').textContent='Informe seu nome (fica registrado no histórico de alterações).'; $('gMsg').hidden=false; return; }
+  try{localStorage.setItem('cpv-nome',nome)}catch(x){}
+  $('gGo').disabled=true; $('gMsg').hidden=true;
+  try{
+    if(gateMode==='create'){
+      if(p.length<6) throw new Error('Use pelo menos 6 caracteres.'); if(p!==$('gPass2').value) throw new Error('As senhas não conferem.');
+      entrou(await run('apiCriarSenha', p, nome));
+    } else entrou(await run('apiEntrar', p, nome));
+  }catch(x){ $('gMsg').textContent=writeErr(x); $('gMsg').hidden=false; }
+  $('gGo').disabled=false;
+});
+function sair(msg){ token=null; try{sessionStorage.removeItem('cpv-token')}catch(e){} gateShow('login', msg||'Informe a senha para acessar o cadastro.'); }
+$('logout').onclick=()=>sair();
+$('pwBtn').onclick=()=>{ $('pwBox').hidden=!$('pwBox').hidden; $('pwAtual').value=$('pwNew').value=$('pwNew2').value=''; };
+$('pwGo').onclick=async()=>{
+  const p=$('pwNew').value; if(p.length<6) return showMsg($('uMsg'),'Use pelo menos 6 caracteres.',true);
+  if(p!==$('pwNew2').value) return showMsg($('uMsg'),'As senhas não conferem.',true);
+  try{ await call('apiTrocarSenha',$('pwAtual').value,p); $('pwBox').hidden=true; showMsg($('uMsg'),'Senha alterada. Nos próximos acessos, use a nova senha.'); }
+  catch(x){ showMsg($('uMsg'),writeErr(x),true); }
+};
+
+// ---------- ESTADO DA TELA ----------
+function writeErr(x){ const m=(x&&x.message)||String(x||''); return m.replace(/^Error:\s*/,'').replace(/^Exception:\s*/,'') || 'Não foi possível concluir. Tente de novo.'; }
+function applyWrite(){ document.querySelectorAll('#fForm button, #fForm input, #cForm button, #cForm input, #iFile').forEach(el=>{ el.disabled=!unit; }); }
+function renderAll(){ renderUnit(); syncRange(); renderFuncs(); renderCustos(); renderBase(); applyWrite(); }
+
+(async()=>{
+  if(token){ try{ entrou({token, estado: await run('apiEstado', token)}); return; }catch(x){ token=null; } }
+  try{ const info=await run('apiInfo');
+    if(!info.senhaDefinida) gateShow('create','Primeiro acesso. Defina a senha que todos os usuários vão usar para entrar no cadastro.');
+    else gateShow('login','Informe seu nome e a senha para acessar o cadastro.');
+  }catch(x){ gateShow('none','Não foi possível acessar a planilha: '+writeErr(x)); }
+})();
+})();
+</script>
+
+</body>
+</html>
